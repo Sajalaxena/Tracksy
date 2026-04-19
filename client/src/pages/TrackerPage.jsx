@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { getHabits } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
+import { useStreakCelebration } from '../hooks/useStreakCelebration';
 import Sidebar from '../components/Sidebar';
 import BottomNav from '../components/BottomNav';
 import MonthSelector from '../components/MonthSelector';
 import HabitGrid from '../components/HabitGrid';
 import AddHabitModal from '../components/AddHabitModal';
+import StreakCelebration from '../components/StreakCelebration';
 
 export default function TrackerPage() {
   const navigate = useNavigate();
@@ -48,6 +50,9 @@ export default function TrackerPage() {
   
   const displayName = profile?.displayName || user?.email?.split('@')[0] || 'User';
   const avatarLetter = displayName[0].toUpperCase();
+
+  // Streak celebration hook
+  const { celebration, closeCelebration } = useStreakCelebration(habits);
 
   return (
     // pb-20 on mobile to clear the bottom nav bar
@@ -129,6 +134,15 @@ export default function TrackerPage() {
           month={selectedMonth}
           onCreated={(h) => setHabits((prev) => [...prev, h])}
           onClose={() => setModalOpen(false)}
+        />
+      )}
+
+      {/* Streak celebration */}
+      {celebration && (
+        <StreakCelebration
+          streak={celebration.streak}
+          habitName={celebration.habitName}
+          onClose={closeCelebration}
         />
       )}
     </div>
