@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import * as api from '../services/api';
+import { validatePassword, validateEmail, sanitizeInput } from '../utils/validation';
 
 const FEATURES = [
   { icon: '📊', label: 'Track daily habits' },
@@ -27,16 +28,34 @@ export default function AuthPage({ mode }) {
     e.preventDefault();
     setError('');
 
-    if (isSignup && password !== confirmPassword) {
-      setError('Passwords do not match.');
+    // Sanitize inputs
+    const sanitizedEmail = sanitizeInput(email);
+
+    // Validate email
+    if (!validateEmail(sanitizedEmail)) {
+      setError('Please enter a valid email address.');
       return;
+    }
+
+    // Validate password strength for signup
+    if (isSignup) {
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.isValid) {
+        setError(passwordValidation.errors[0]); // Show first error
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        setError('Passwords do not match.');
+        return;
+      }
     }
 
     setLoading(true);
     try {
       const response = isSignup
-        ? await api.signup(email, password)
-        : await api.login(email, password);
+        ? await api.signup(sanitizedEmail, password)
+        : await api.login(sanitizedEmail, password);
 
       const { token, user } = response.data;
       authContext.login(token, user);
@@ -163,6 +182,28 @@ export default function AuthPage({ mode }) {
                   {showPassword ? 'Hide' : 'Show'}
                 </button>
               </div>
+              {isSignup && password && (
+                <div className="mt-2 text-xs text-gray-500 space-y-1">
+                  <p className="font-medium">Password must contain:</p>
+                  <ul className="space-y-0.5 ml-2">
+                    <li className={password.length >= 8 ? 'text-green-600' : 'text-gray-400'}>
+                      ✓ At least 8 characters
+                    </li>
+                    <li className={/[a-z]/.test(password) ? 'text-green-600' : 'text-gray-400'}>
+                      ✓ One lowercase letter
+                    </li>
+                    <li className={/[A-Z]/.test(password) ? 'text-green-600' : 'text-gray-400'}>
+                      ✓ One uppercase letter
+                    </li>
+                    <li className={/\d/.test(password) ? 'text-green-600' : 'text-gray-400'}>
+                      ✓ One number
+                    </li>
+                    <li className={/[@$!%*?&]/.test(password) ? 'text-green-600' : 'text-gray-400'}>
+                      ✓ One special character (@$!%*?&)
+                    </li>
+                  </ul>
+                </div>
+              )}
             </div>
 
             {/* Confirm Password */}

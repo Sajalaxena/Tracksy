@@ -22,6 +22,14 @@ router.post('/signup', async (req, res, next) => {
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
     }
 
+    // Enhanced password strength validation
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
+    if (!passwordRegex.test(password)) {
+      return res.status(400).json({ 
+        error: 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)' 
+      });
+    }
+
     // Check for existing user — requirement 1.3
     const existing = await User.findOne({ email: email.toLowerCase().trim() });
     if (existing) {

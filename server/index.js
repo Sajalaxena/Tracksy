@@ -3,6 +3,9 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
 
 const authRouter = require('./routes/auth');
 const habitsRouter = require('./routes/habits');
@@ -11,12 +14,37 @@ const authMiddleware = require('./middleware/auth');
 
 const app = express();
 
+// Security middleware
+// 1. Helmet - sets various HTTP headers for security
+app.use(helmet());
+
+// 2. Rate limiting - prevent brute force attacks
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(limiter);
+
+// 3. Stricter rate limiting for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 login/signup attempts per windowMs
+  message: 'Too many authentication attempts, please try again later.',
+  skipSuccessfulRequests: true, // don't count successful requests
+});
+
+// 4. NoSQL injection prevention
+app.use(mongoSanitize());
+
 // Global middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10kb' })); // limit body size
 
-// Routes
-app.use('/api/auth', authRouter);
+// Routes with rate limiting
+app.use('/api/auth', authLimiter, authRouter);
 app.use('/api/habits', authMiddleware, habitsRouter);
 app.use('/api/chat', authMiddleware, chatRouter);
 
