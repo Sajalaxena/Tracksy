@@ -4,7 +4,7 @@ const ProfileContext = createContext(null);
 
 function loadProfile() {
   try {
-    const raw = localStorage.getItem('ledger_profile');
+    const raw = localStorage.getItem('tracksy_profile');
     return raw ? JSON.parse(raw) : { displayName: '', avatar: null };
   } catch {
     return { displayName: '', avatar: null };
@@ -17,7 +17,7 @@ export function ProfileProvider({ children }) {
   function updateProfile(updates) {
     setProfile((prev) => {
       const next = { ...prev, ...updates };
-      localStorage.setItem('ledger_profile', JSON.stringify(next));
+      localStorage.setItem('tracksy_profile', JSON.stringify(next));
       return next;
     });
   }

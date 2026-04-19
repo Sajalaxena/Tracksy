@@ -64,7 +64,7 @@ export default function AuthPage({ mode }) {
             <div className="w-10 h-10 bg-gradient-to-br from-emerald-400 to-accent rounded-xl flex items-center justify-center shadow-lg">
               <span className="text-white font-bold text-lg">L</span>
             </div>
-            <span className="text-white font-bold text-2xl tracking-tight">The Ledger</span>
+            <span className="text-white font-bold text-2xl tracking-tight">Tracksy</span>
           </div>
           <p className="mt-4 text-white/60 text-sm leading-relaxed max-w-xs">
             Your personal habit tracker — build consistency, celebrate wins, and grow every day.
@@ -101,7 +101,7 @@ export default function AuthPage({ mode }) {
             <div className="w-8 h-8 bg-gradient-to-br from-emerald-400 to-accent rounded-lg flex items-center justify-center">
               <span className="text-white font-bold">L</span>
             </div>
-            <span className="text-gray-900 font-bold text-xl">The Ledger</span>
+            <span className="text-gray-900 font-bold text-xl">Tracksy</span>
           </div>
 
           {/* Heading */}

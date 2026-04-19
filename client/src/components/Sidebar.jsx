@@ -63,7 +63,7 @@ export default function Sidebar({ onNewHabit }) {
           <span className="text-white font-bold text-sm">L</span>
         </div>
         <span className="text-white font-bold text-base tracking-tight select-none hidden lg:block whitespace-nowrap">
-          The Ledger
+          Tracksy
         </span>
       </div>
 

@@ -2,12 +2,12 @@ import axios from 'axios';
 
 // Create axios instance with base URL pointing to the API
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
 });
 
 // Request interceptor — attach JWT from localStorage if present
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('ledger_token');
+  const token = localStorage.getItem('tracksy_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

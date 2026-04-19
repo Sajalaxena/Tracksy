@@ -1,4 +1,4 @@
-# The Ledger — Personal Habit Tracker
+# Tracksy — Personal Habit Tracker
 
 A full-stack personal habit tracker presented as a diary-style matrix grid. Habit categories are rows, calendar days are columns, and each cell holds a daily entry. Supports boolean (checkbox) and numeric habit types, JWT authentication, and an analytics page with completion rates, streaks, and monthly trends.
 
@@ -48,14 +48,14 @@ cp server/.env.example server/.env
 Edit `server/.env`:
 
 ```
-MONGO_URI=mongodb://localhost:27017/ledger
+MONGO_URI=mongodb://localhost:27017/tracksy
 JWT_SECRET=your_jwt_secret_here
 PORT=5000
 ```
 
 | Variable    | Description                                      | Default                              |
 |-------------|--------------------------------------------------|--------------------------------------|
-| `MONGO_URI` | MongoDB connection string                        | `mongodb://localhost:27017/ledger`   |
+| `MONGO_URI` | MongoDB connection string                        | `mongodb://localhost:27017/tracksy`  |
 | `JWT_SECRET`| Secret key used to sign JWTs (keep this private) | —                                    |
 | `PORT`      | Port the Express server listens on               | `5000`                               |
 

@@ -1,5 +1,5 @@
 {
-  "name": "ledger-client",
+  "name": "tracksy-client",
   "version": "0.0.0",
   "type": "module",
   "scripts": {

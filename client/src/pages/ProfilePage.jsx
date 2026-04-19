@@ -35,7 +35,7 @@ export default function ProfilePage() {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', uploadPreset);
-    formData.append('folder', 'ledger-avatars');
+    formData.append('folder', 'tracksy-avatars');
 
     try {
       const res = await fetch(

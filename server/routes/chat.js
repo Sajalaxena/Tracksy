@@ -38,7 +38,7 @@ router.post('/', async (req, res) => {
           {
             role: 'system',
             content:
-              'You are a helpful habit-coaching assistant for "The Ledger" habit tracker app. ' +
+              'You are a helpful habit-coaching assistant for "Tracksy" habit tracker app. ' +
               'Help users build better habits, stay consistent, understand their analytics, ' +
               'and answer questions about habit formation, productivity, and wellness. ' +
               'Keep responses concise and encouraging. Use bullet points when listing steps.',

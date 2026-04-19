@@ -1,5 +1,5 @@
 /**
- * Analytics utility functions for The Ledger habit tracker.
+ * Analytics utility functions for Tracksy habit tracker.
  * Both functions are pure (no side effects, no I/O).
  */
 

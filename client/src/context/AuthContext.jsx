@@ -7,7 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(null);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('ledger_token');
+    const storedToken = localStorage.getItem('tracksy_token');
     if (!storedToken) return;
 
     try {
@@ -23,16 +23,16 @@ export const AuthProvider = ({ children }) => {
         setUser(payload);
       } else {
         // Token expired — clean up
-        localStorage.removeItem('ledger_token');
+        localStorage.removeItem('tracksy_token');
       }
     } catch {
       // Malformed token — clean up
-      localStorage.removeItem('ledger_token');
+      localStorage.removeItem('tracksy_token');
     }
   }, []);
 
   const login = (newToken, newUser) => {
-    localStorage.setItem('ledger_token', newToken);
+    localStorage.setItem('tracksy_token', newToken);
     setToken(newToken);
     setUser(newUser);
   };

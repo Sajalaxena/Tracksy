@@ -4,7 +4,7 @@ const ThemeContext = createContext(null);
 
 export function ThemeProvider({ children }) {
   const [dark, setDark] = useState(() => {
-    const stored = localStorage.getItem('ledger_theme');
+    const stored = localStorage.getItem('tracksy_theme');
     if (stored) return stored === 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
@@ -13,10 +13,10 @@ export function ThemeProvider({ children }) {
     const root = document.documentElement;
     if (dark) {
       root.classList.add('dark');
-      localStorage.setItem('ledger_theme', 'dark');
+      localStorage.setItem('tracksy_theme', 'dark');
     } else {
       root.classList.remove('dark');
-      localStorage.setItem('ledger_theme', 'light');
+      localStorage.setItem('tracksy_theme', 'light');
     }
   }, [dark]);
 
