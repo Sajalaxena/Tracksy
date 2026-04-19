@@ -1,10 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   PieChart, Pie, Cell, Tooltip, ResponsiveContainer,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Legend,
   RadialBarChart, RadialBar,
 } from 'recharts';
 import { getHabits } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useProfile } from '../context/ProfileContext';
 import Sidebar from '../components/Sidebar';
 import BottomNav from '../components/BottomNav';
 import MonthSelector from '../components/MonthSelector';
@@ -397,6 +400,10 @@ function GoalOverview({ habits, month }) {
 // AnalyticsPage
 // ---------------------------------------------------------------------------
 export default function AnalyticsPage() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { profile } = useProfile();
+  
   const currentMonth = monthOffset(0);
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [habitsByMonth, setHabitsByMonth] = useState({});
@@ -432,6 +439,9 @@ export default function AnalyticsPage() {
   const topHabit = habitsForSelected.length
     ? habitsForSelected.reduce((best, h) => completionRate(h, selectedMonth) > completionRate(best, selectedMonth) ? h : best, habitsForSelected[0])
     : null;
+  
+  const displayName = profile?.displayName || user?.email?.split('@')[0] || 'User';
+  const avatarLetter = displayName[0].toUpperCase();
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950 overflow-hidden">
@@ -444,8 +454,31 @@ export default function AnalyticsPage() {
             <h1 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">Analytics</h1>
             <p className="text-xs text-gray-400 dark:text-gray-500 hidden sm:block">Track your progress and achievements</p>
           </div>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-3">
             <MonthSelector value={selectedMonth} onChange={setSelectedMonth} />
+            
+            {/* Profile section */}
+            <button
+              type="button"
+              onClick={() => navigate('/profile')}
+              className="flex flex-col items-center gap-1 group cursor-pointer hover:opacity-80 transition-opacity"
+              title="Go to Profile"
+            >
+              {profile?.avatar ? (
+                <img
+                  src={profile.avatar}
+                  alt={displayName}
+                  className="w-10 h-10 rounded-lg object-cover ring-2 ring-gray-200 dark:ring-gray-700 group-hover:ring-indigo-500 transition-all"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center ring-2 ring-gray-200 dark:ring-gray-700 group-hover:ring-indigo-500 transition-all">
+                  <span className="text-white text-sm font-bold">{avatarLetter}</span>
+                </div>
+              )}
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-400 group-hover:text-indigo-500 transition-colors max-w-[80px] truncate">
+                {displayName}
+              </span>
+            </button>
           </div>
         </header>
 
