@@ -52,4 +52,11 @@ export const deleteHabit = (id) =>
 export const sendChat = (messages) =>
   api.post('/chat', { messages });
 
+// Profile endpoints
+export const getProfile = () =>
+  api.get('/profile');
+
+export const updateProfileData = (profileData) =>
+  api.put('/profile', profileData);
+
 export default api;

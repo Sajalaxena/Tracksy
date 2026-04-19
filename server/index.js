@@ -10,6 +10,7 @@ const mongoSanitize = require('express-mongo-sanitize');
 const authRouter = require('./routes/auth');
 const habitsRouter = require('./routes/habits');
 const chatRouter = require('./routes/chat');
+const profileRouter = require('./routes/profile');
 const authMiddleware = require('./middleware/auth');
 
 const app = express();
@@ -47,6 +48,7 @@ app.use(express.json({ limit: '10kb' })); // limit body size
 app.use('/api/auth', authLimiter, authRouter);
 app.use('/api/habits', authMiddleware, habitsRouter);
 app.use('/api/chat', authMiddleware, chatRouter);
+app.use('/api/profile', authMiddleware, profileRouter);
 
 // Global error-handling middleware
 app.use((err, req, res, next) => {

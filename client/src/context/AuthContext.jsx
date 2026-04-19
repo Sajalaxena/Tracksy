@@ -35,6 +35,11 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('tracksy_token', newToken);
     setToken(newToken);
     setUser(newUser);
+    
+    // Save profile data if available
+    if (newUser.profile) {
+      localStorage.setItem('tracksy_profile', JSON.stringify(newUser.profile));
+    }
   };
 
   const logout = () => {
