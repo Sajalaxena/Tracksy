@@ -56,6 +56,18 @@ function shortMonthLabel(yyyyMm) {
   return new Date(year, month - 1, 1).toLocaleString('default', { month: 'short', year: 'numeric' });
 }
 
+function shortMonth(yyyyMm) {
+  const [year, month] = yyyyMm.split('-').map(Number);
+  return new Date(year, month - 1, 1).toLocaleString('default', { month: 'short' });
+}
+
+// All 12 months for a given year as YYYY-MM strings
+function yearMonths(year) {
+  return Array.from({ length: 12 }, (_, i) =>
+    `${year}-${String(i + 1).padStart(2, '0')}`
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Color helper — uses the same palette as CategoryName/HabitGrid
 // ---------------------------------------------------------------------------
@@ -345,6 +357,90 @@ function SummaryTable({ habits, month }) {
 }
 
 // ---------------------------------------------------------------------------
+// Yearly overview chart — avg completion per month across the full year
+// ---------------------------------------------------------------------------
+function YearlyChart({ habitsByMonth, year }) {
+  const months = yearMonths(year);
+
+  const data = months.map((m) => {
+    const habits = habitsByMonth[m] || [];
+    const avg = habits.length
+      ? habits.reduce((s, h) => s + completionRate(h, m), 0) / habits.length
+      : 0;
+    return {
+      month: shortMonth(m),
+      avg: parseFloat(avg.toFixed(1)),
+      habits: habits.length,
+    };
+  });
+
+  const hasAnyData = data.some((d) => d.avg > 0);
+
+  if (!hasAnyData) {
+    return (
+      <div className="flex flex-col items-center justify-center h-48 text-gray-400 dark:text-gray-500">
+        <span className="text-4xl mb-2">📅</span>
+        <p className="text-sm">No data for {year} yet.</p>
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={260}>
+      <AreaChart data={data} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="yearGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%"  stopColor="#6366F1" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+        <XAxis
+          dataKey="month"
+          tick={{ fontSize: 12, fill: '#94A3B8' }}
+          axisLine={false}
+          tickLine={false}
+        />
+        <YAxis
+          domain={[0, 100]}
+          tickFormatter={(v) => `${v}%`}
+          tick={{ fontSize: 12, fill: '#94A3B8' }}
+          axisLine={false}
+          tickLine={false}
+          width={42}
+        />
+        <Tooltip
+          content={({ active, payload, label }) => {
+            if (!active || !payload?.length) return null;
+            return (
+              <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl shadow-xl p-3 text-xs">
+                <p className="font-semibold text-gray-700 dark:text-gray-300 mb-1">{label}</p>
+                <p className="text-indigo-500 font-bold">{payload[0].value}% avg completion</p>
+                <p className="text-gray-400">{payload[0].payload.habits} habit{payload[0].payload.habits !== 1 ? 's' : ''}</p>
+              </div>
+            );
+          }}
+        />
+        <Area
+          type="monotone"
+          dataKey="avg"
+          stroke="#6366F1"
+          fill="url(#yearGrad)"
+          strokeWidth={2.5}
+          dot={(props) => {
+            const { cx, cy, payload } = props;
+            if (payload.avg === 0) return null;
+            return <circle key={`dot-${payload.month}`} cx={cx} cy={cy} r={4} fill="#6366F1" stroke="#fff" strokeWidth={2} />;
+          }}
+          activeDot={{ r: 6, fill: '#6366F1', stroke: '#fff', strokeWidth: 2 }}
+          name="Avg Completion"
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Radial progress for "Goal" overview
 // ---------------------------------------------------------------------------
 function GoalOverview({ habits, month }) {
@@ -403,32 +499,43 @@ export default function AnalyticsPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { profile } = useProfile();
-  
+
+  const currentYear  = new Date().getFullYear();
   const currentMonth = monthOffset(0);
+
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [selectedYear,  setSelectedYear]  = useState(currentYear);
   const [habitsByMonth, setHabitsByMonth] = useState({});
+  const [yearlyLoading, setYearlyLoading] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error,   setError]   = useState('');
 
-  const months = [monthOffset(2), monthOffset(1), monthOffset(0)];
+  // Last 3 months for the monthly trends chart
+  const trendMonths = [monthOffset(2), monthOffset(1), monthOffset(0)];
 
-  const fetchAllMonths = useCallback(async () => {
+  // Fetch the 3 trend months + all 12 months of the selected year
+  const fetchAllData = useCallback(async (year) => {
     setLoading(true);
+    setYearlyLoading(true);
     setError('');
     try {
-      const results = await Promise.all(months.map((m) => getHabits(m)));
+      const allMonths = Array.from(
+        new Set([...trendMonths, ...yearMonths(year)])
+      );
+      const results = await Promise.all(allMonths.map((m) => getHabits(m)));
       const byMonth = {};
-      months.forEach((m, i) => { byMonth[m] = results[i].data; });
+      allMonths.forEach((m, i) => { byMonth[m] = results[i].data; });
       setHabitsByMonth(byMonth);
     } catch (err) {
       setError(err?.response?.data?.error || 'Failed to load analytics data.');
     } finally {
       setLoading(false);
+      setYearlyLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => { fetchAllMonths(); }, [fetchAllMonths]);
+  useEffect(() => { fetchAllData(selectedYear); }, [fetchAllData, selectedYear]);
 
   const habitsForSelected = habitsByMonth[selectedMonth] || [];
 
@@ -439,9 +546,12 @@ export default function AnalyticsPage() {
   const topHabit = habitsForSelected.length
     ? habitsForSelected.reduce((best, h) => completionRate(h, selectedMonth) > completionRate(best, selectedMonth) ? h : best, habitsForSelected[0])
     : null;
-  
-  const displayName = profile?.displayName || user?.email?.split('@')[0] || 'User';
+
+  const displayName  = profile?.displayName || user?.email?.split('@')[0] || 'User';
   const avatarLetter = displayName[0].toUpperCase();
+
+  // Year options: current year and 2 years back
+  const yearOptions = [currentYear, currentYear - 1, currentYear - 2];
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-950 overflow-hidden">
@@ -456,7 +566,7 @@ export default function AnalyticsPage() {
           </div>
           <div className="ml-auto flex items-center gap-3">
             <MonthSelector value={selectedMonth} onChange={setSelectedMonth} />
-            
+
             {/* Profile section */}
             <button
               type="button"
@@ -482,7 +592,7 @@ export default function AnalyticsPage() {
           </div>
         </header>
 
-        {/* Content — pb-24 on mobile for bottom nav */}
+        {/* Content */}
         <div className="flex-1 overflow-auto p-3 sm:p-6 pb-24 md:pb-6 space-y-4 sm:space-y-6">
           {loading && (
             <div className="flex items-center justify-center h-48">
@@ -501,11 +611,11 @@ export default function AnalyticsPage() {
 
           {!loading && !error && (
             <>
-              {/* Stat cards — 2 cols on mobile, 4 on desktop */}
+              {/* ── Stat cards ── */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <StatCard value={totalEntries} label="Total Entries" icon="📝" gradient="linear-gradient(135deg, #6366F1, #8B5CF6)" delay={0} />
-                <StatCard value={`${longestStreak}d`} label="Longest Streak" icon="🔥" gradient="linear-gradient(135deg, #F43F5E, #F97316)" delay={100} />
-                <StatCard value={habitsForSelected.length} label="Active Habits" icon="🎯" gradient="linear-gradient(135deg, #06B6D4, #3B82F6)" delay={200} />
+                <StatCard value={totalEntries}            label="Total Entries"   icon="📝" gradient="linear-gradient(135deg, #6366F1, #8B5CF6)" delay={0} />
+                <StatCard value={`${longestStreak}d`}    label="Longest Streak"  icon="🔥" gradient="linear-gradient(135deg, #F43F5E, #F97316)" delay={100} />
+                <StatCard value={habitsForSelected.length} label="Active Habits"  icon="🎯" gradient="linear-gradient(135deg, #06B6D4, #3B82F6)" delay={200} />
                 <StatCard
                   value={topHabit ? `${completionRate(topHabit, selectedMonth).toFixed(0)}%` : '—'}
                   label={topHabit ? `Best: ${topHabit.name}` : 'Best Habit'}
@@ -515,26 +625,59 @@ export default function AnalyticsPage() {
                 />
               </div>
 
-              {/* Goal + Trends — stacked on mobile, side-by-side on lg */}
+              {/* ── Yearly overview ── */}
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 sm:p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                    Yearly Overview
+                  </h2>
+                  {/* Year selector */}
+                  <div className="flex gap-1">
+                    {yearOptions.map((y) => (
+                      <button
+                        key={y}
+                        onClick={() => setSelectedYear(y)}
+                        className={[
+                          'px-3 py-1 rounded-lg text-xs font-semibold transition-all',
+                          selectedYear === y
+                            ? 'bg-indigo-500 text-white shadow-sm'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700',
+                        ].join(' ')}
+                      >
+                        {y}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {yearlyLoading ? (
+                  <div className="flex items-center justify-center h-48">
+                    <div className="w-8 h-8 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  <YearlyChart habitsByMonth={habitsByMonth} year={selectedYear} />
+                )}
+              </div>
+
+              {/* ── Goal + Monthly Trends ── */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
                 <GoalOverview habits={habitsForSelected} month={selectedMonth} />
                 <div className="lg:col-span-2 bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-4 sm:p-5">
                   <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-indigo-500" />
-                    Monthly Trends
+                    <span className="w-2 h-2 rounded-full bg-violet-500" />
+                    Monthly Trends (last 3 months)
                   </h2>
-                  <TrendsChart habitsByMonth={habitsByMonth} months={months} />
+                  <TrendsChart habitsByMonth={habitsByMonth} months={trendMonths} />
                 </div>
               </div>
 
-              {/* Donut cards — scrollable row on mobile */}
+              {/* ── Donut cards ── */}
               {habitsForSelected.length > 0 && (
                 <section>
                   <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 sm:mb-4 flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-rose-500" />
                     Completion by Habit — {shortMonthLabel(selectedMonth)}
                   </h2>
-                  {/* Horizontal scroll on mobile, wrap on desktop */}
                   <div className="flex gap-3 sm:gap-4 overflow-x-auto pb-2 sm:flex-wrap sm:overflow-visible">
                     {habitsForSelected.map((habit, idx) => (
                       <div key={habit._id} className="flex-shrink-0 sm:flex-shrink">
@@ -545,7 +688,7 @@ export default function AnalyticsPage() {
                 </section>
               )}
 
-              {/* Summary table — horizontally scrollable on mobile */}
+              {/* ── Summary table ── */}
               <section>
                 <h2 className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-3 sm:mb-4 flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-500" />

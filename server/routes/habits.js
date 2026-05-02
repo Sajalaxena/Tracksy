@@ -24,7 +24,50 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// POST /api/habits
+// POST /api/habits/carry-over
+// Copies all habits from a previous month into a target month (empty data).
+// Only runs if the target month has no habits yet.
+router.post('/carry-over', async (req, res, next) => {
+  try {
+    const { fromMonth, toMonth } = req.body;
+
+    if (!fromMonth || !/^\d{4}-\d{2}$/.test(fromMonth)) {
+      return res.status(400).json({ error: 'fromMonth must be in YYYY-MM format' });
+    }
+    if (!toMonth || !/^\d{4}-\d{2}$/.test(toMonth)) {
+      return res.status(400).json({ error: 'toMonth must be in YYYY-MM format' });
+    }
+
+    // Safety: don't overwrite a month that already has habits
+    const existing = await HabitRecord.countDocuments({ userId: req.userId, month: toMonth });
+    if (existing > 0) {
+      const records = await HabitRecord.find({ userId: req.userId, month: toMonth });
+      return res.status(200).json({ carried: false, habits: records });
+    }
+
+    // Fetch source habits
+    const sourceHabits = await HabitRecord.find({ userId: req.userId, month: fromMonth });
+    if (sourceHabits.length === 0) {
+      return res.status(200).json({ carried: false, habits: [] });
+    }
+
+    // Duplicate with empty data
+    const newHabits = await HabitRecord.insertMany(
+      sourceHabits.map((h) => ({
+        userId: req.userId,
+        name: h.name,
+        type: h.type,
+        month: toMonth,
+        data: {},
+      }))
+    );
+
+    return res.status(201).json({ carried: true, habits: newHabits });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // Creates a new HabitRecord for the authenticated user.
 router.post('/', async (req, res, next) => {
   try {

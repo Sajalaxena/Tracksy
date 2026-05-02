@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getHabits } from '../services/api';
+import { getHabits, carryOverHabits } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
 import { useStreakCelebration } from '../hooks/useStreakCelebration';
@@ -23,13 +23,35 @@ export default function TrackerPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [carriedOver, setCarriedOver] = useState(false);
+
+  // Returns the previous month string in YYYY-MM format
+  function prevMonth(yyyyMm) {
+    const [y, m] = yyyyMm.split('-').map(Number);
+    const d = new Date(y, m - 2, 1); // m-1 is current, m-2 is previous
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
 
   const fetchHabits = useCallback(async (month) => {
     setLoading(true);
     setError('');
+    setCarriedOver(false);
     try {
       const response = await getHabits(month);
-      setHabits(response.data);
+
+      // If this month is empty, auto-carry from the previous month
+      if (response.data.length === 0) {
+        const from = prevMonth(month);
+        const carryRes = await carryOverHabits(from, month);
+        if (carryRes.data.carried) {
+          setCarriedOver(true);
+          setHabits(carryRes.data.habits);
+        } else {
+          setHabits([]);
+        }
+      } else {
+        setHabits(response.data);
+      }
     } catch (err) {
       setError(
         err?.response?.data?.error ||
@@ -115,6 +137,15 @@ export default function TrackerPage() {
 
           {!loading && !error && (
             <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+              {/* Carry-over notice */}
+              {carriedOver && (
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-indigo-50 dark:bg-indigo-900/20 border-b border-indigo-100 dark:border-indigo-800">
+                  <span className="text-indigo-500 text-base">✨</span>
+                  <p className="text-xs text-indigo-700 dark:text-indigo-300 font-medium">
+                    Your habits were automatically carried over from last month. Start logging!
+                  </p>
+                </div>
+              )}
               <HabitGrid
                 month={selectedMonth}
                 habits={habits}
