@@ -45,6 +45,12 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // 1. Try cookie first, fall back to localStorage (migration path)
     const storedToken = getCookie(COOKIE_NAME) || localStorage.getItem('tracksy_token');
+    // 2. Restore full user object (email etc.) saved at login time
+    let storedUser = null;
+    try {
+      const raw = localStorage.getItem('tracksy_user');
+      if (raw) storedUser = JSON.parse(raw);
+    } catch { /* ignore */ }
 
     if (storedToken) {
       const payload = decodeToken(storedToken);
@@ -53,11 +59,13 @@ export const AuthProvider = ({ children }) => {
         // Valid — hydrate state and ensure cookie is set
         setCookie(COOKIE_NAME, storedToken, COOKIE_DAYS);
         setToken(storedToken);
-        setUser(payload);
+        // Prefer the full user object saved at login; fall back to JWT payload
+        setUser(storedUser || payload);
       } else {
         // Expired — clean up everywhere
         deleteCookie(COOKIE_NAME);
         localStorage.removeItem('tracksy_token');
+        localStorage.removeItem('tracksy_user');
       }
     }
 
@@ -65,9 +73,11 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = (newToken, newUser) => {
-    // Persist in cookie (7 days) AND localStorage as backup
+    // Persist token in cookie (7 days) AND localStorage as backup
     setCookie(COOKIE_NAME, newToken, COOKIE_DAYS);
     localStorage.setItem('tracksy_token', newToken);
+    // Persist full user object so email survives a refresh
+    localStorage.setItem('tracksy_user', JSON.stringify(newUser));
 
     setToken(newToken);
     setUser(newUser);

@@ -6,7 +6,7 @@ const router = Router();
 // GET /api/profile - Get user profile
 router.get('/', async (req, res, next) => {
   try {
-    const user = await User.findById(req.userId).select('profile email');
+    const user = await User.findById(req.userId).select('profile email createdAt');
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -14,6 +14,7 @@ router.get('/', async (req, res, next) => {
     return res.json({
       profile: user.profile || { displayName: '', bio: '', avatar: null },
       email: user.email,
+      memberSince: user.createdAt,
     });
   } catch (err) {
     next(err);

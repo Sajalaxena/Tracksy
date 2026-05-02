@@ -7,8 +7,14 @@ import BottomNav from '../components/BottomNav';
 
 export default function ProfilePage() {
   const { user } = useAuth();
-  const { profile, updateProfile } = useProfile();
+  const { profile, updateProfile, accountInfo } = useProfile();
   const { dark, toggle } = useTheme();
+
+  // accountInfo has email + memberSince from the server (survives refresh)
+  const email      = accountInfo?.email || user?.email || '—';
+  const memberSince = accountInfo?.memberSince
+    ? new Date(accountInfo.memberSince).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    : null;
 
   const [displayName, setDisplayName] = useState(profile.displayName || '');
   const [bio, setBio] = useState(profile.bio || '');
@@ -212,7 +218,7 @@ export default function ProfilePage() {
                   Email address
                 </label>
                 <div className="input-base opacity-60 cursor-not-allowed select-all">
-                  {user?.email || '—'}
+                  {email}
                 </div>
                 <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
               </div>
@@ -308,7 +314,10 @@ export default function ProfilePage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Verified account</p>
-                <p className="text-xs text-gray-400">{user?.email}</p>
+                <p className="text-xs text-gray-400">{email}</p>
+                {memberSince && (
+                  <p className="text-xs text-gray-400 mt-0.5">Member since {memberSince}</p>
+                )}
               </div>
             </div>
           </div>

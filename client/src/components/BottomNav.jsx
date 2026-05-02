@@ -38,19 +38,31 @@ const NAV_ITEMS = [
 
 /**
  * BottomNav — mobile-only bottom navigation bar (hidden on md+).
- * Shows on screens < 768px.
  */
 export default function BottomNav({ onNewHabit }) {
   const { dark, toggle } = useTheme();
+  const { logout, user } = useAuth();
   const { profile } = useProfile();
+  const navigate = useNavigate();
+
+  const displayName  = profile?.displayName || user?.email?.split('@')[0] || 'User';
+  const avatarLetter = displayName[0]?.toUpperCase() || 'U';
+
+  function handleLogout() {
+    logout();
+    navigate('/login');
+  }
 
   return (
     <nav
       className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 shadow-lg"
       aria-label="Mobile navigation"
     >
-      {/* Safe area padding for iOS */}
-      <div className="flex items-center justify-around px-2 pb-safe" style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}>
+      <div
+        className="flex items-center justify-around px-1"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}
+      >
+        {/* Nav links */}
         {NAV_ITEMS.map(({ to, end, label, icon }) => (
           <NavLink
             key={to}
@@ -58,28 +70,26 @@ export default function BottomNav({ onNewHabit }) {
             end={end}
             className={({ isActive }) =>
               [
-                'flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl min-w-[56px] transition-all',
-                isActive
-                  ? 'text-indigo-500'
-                  : 'text-gray-400 dark:text-gray-500',
+                'flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl min-w-[48px] transition-all',
+                isActive ? 'text-indigo-500' : 'text-gray-400 dark:text-gray-500',
               ].join(' ')
             }
           >
             {({ isActive }) => (
               <>
-                <span className={isActive ? 'text-indigo-500' : ''}>{icon(isActive)}</span>
+                <span>{icon(isActive)}</span>
                 <span className="text-[10px] font-semibold">{label}</span>
               </>
             )}
           </NavLink>
         ))}
 
-        {/* New Habit button */}
+        {/* Add habit */}
         {onNewHabit && (
           <button
             type="button"
             onClick={onNewHabit}
-            className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl min-w-[56px] text-gray-400 dark:text-gray-500 transition-all"
+            className="flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl min-w-[48px] text-gray-400 dark:text-gray-500 transition-all"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -92,7 +102,7 @@ export default function BottomNav({ onNewHabit }) {
         <button
           type="button"
           onClick={toggle}
-          className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-xl min-w-[56px] text-gray-400 dark:text-gray-500 transition-all"
+          className="flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl min-w-[48px] text-gray-400 dark:text-gray-500 transition-all"
         >
           {dark ? (
             <svg className="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -104,6 +114,28 @@ export default function BottomNav({ onNewHabit }) {
             </svg>
           )}
           <span className="text-[10px] font-semibold">{dark ? 'Light' : 'Dark'}</span>
+        </button>
+
+        {/* Logout */}
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl min-w-[48px] text-gray-400 dark:text-gray-500 hover:text-rose-500 transition-all"
+          title={`Sign out (${displayName})`}
+        >
+          {/* Show avatar if available, else logout icon */}
+          {profile?.avatar ? (
+            <img
+              src={profile.avatar}
+              alt={displayName}
+              className="w-5 h-5 rounded-full object-cover ring-1 ring-rose-400"
+            />
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          )}
+          <span className="text-[10px] font-semibold">Logout</span>
         </button>
       </div>
     </nav>
