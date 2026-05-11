@@ -25,36 +25,45 @@ export default function ProfilePage() {
   const fileRef = useRef(null);
 
   async function uploadToCloudinary(file) {
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const cloudName    = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
     if (!cloudName || !uploadPreset) {
-      setUploadError(
-        'Cloudinary not configured. Add VITE_CLOUDINARY_CLOUD_NAME and VITE_CLOUDINARY_UPLOAD_PRESET to client/.env'
-      );
+      setUploadError('Cloudinary is not configured. Check your .env file.');
       return;
     }
 
     setUploading(true);
     setUploadError('');
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', uploadPreset);
-    formData.append('folder', 'tracksy-avatars');
-
     try {
-      const res = await fetch(
+      // Step 1 — upload image to Cloudinary
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', uploadPreset);
+      formData.append('folder', 'tracksy-avatars');
+
+      const cloudRes = await fetch(
         `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
         { method: 'POST', body: formData }
       );
 
-      if (!res.ok) throw new Error('Upload failed');
+      if (!cloudRes.ok) {
+        const errData = await cloudRes.json().catch(() => ({}));
+        throw new Error(errData?.error?.message || 'Cloudinary upload failed');
+      }
 
-      const data = await res.json();
-      updateProfile({ avatar: data.secure_url });
-    } catch {
-      setUploadError('Failed to upload image. Please try again.');
+      const cloudData = await cloudRes.json();
+      const avatarUrl = cloudData.secure_url;
+
+      if (!avatarUrl) throw new Error('No URL returned from Cloudinary');
+
+      // Step 2 — save the URL to our backend (this is what persists across devices)
+      await updateProfile({ avatar: avatarUrl });
+
+    } catch (err) {
+      console.error('Avatar upload error:', err);
+      setUploadError(err.message || 'Failed to upload image. Please try again.');
     } finally {
       setUploading(false);
     }

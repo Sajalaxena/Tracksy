@@ -76,15 +76,23 @@ export const AuthProvider = ({ children }) => {
     // Persist token in cookie (7 days) AND localStorage as backup
     setCookie(COOKIE_NAME, newToken, COOKIE_DAYS);
     localStorage.setItem('tracksy_token', newToken);
-    // Persist full user object so email survives a refresh
+    // Persist full user object so email + profile survive a refresh
     localStorage.setItem('tracksy_user', JSON.stringify(newUser));
+
+    // Immediately cache the profile so it's available before ProfileContext
+    // fires its async fetch — this is what makes the avatar show on login
+    // on any device without a loading flash
+    if (newUser?.profile) {
+      const normalised = {
+        displayName: newUser.profile.displayName || '',
+        bio:         newUser.profile.bio         || '',
+        avatar:      newUser.profile.avatar      || null,
+      };
+      localStorage.setItem('tracksy_profile', JSON.stringify(normalised));
+    }
 
     setToken(newToken);
     setUser(newUser);
-
-    if (newUser.profile) {
-      localStorage.setItem('tracksy_profile', JSON.stringify(newUser.profile));
-    }
   };
 
   const logout = () => {

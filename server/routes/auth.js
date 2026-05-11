@@ -50,10 +50,14 @@ router.post('/signup', async (req, res, next) => {
       { expiresIn: '7d' }
     );
 
-    // Return 201 with token and user info — requirement 1.6
+    // Return 201 with token, user info, and profile
     return res.status(201).json({
       token,
-      user: { id: user._id, email: user.email },
+      user: {
+        id:      user._id,
+        email:   user.email,
+        profile: user.profile || { displayName: '', bio: '', avatar: null },
+      },
     });
   } catch (err) {
     next(err);
@@ -85,10 +89,14 @@ router.post('/login', async (req, res, next) => {
       { expiresIn: '7d' }
     );
 
-    // Return 200 with token and user info — requirement 2.2
+    // Return 200 with token, user info, and profile (avatar included)
     return res.status(200).json({
       token,
-      user: { id: user._id, email: user.email },
+      user: {
+        id:      user._id,
+        email:   user.email,
+        profile: user.profile || { displayName: '', bio: '', avatar: null },
+      },
     });
   } catch (err) {
     next(err);
