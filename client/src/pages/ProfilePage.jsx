@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
 import { useTheme } from '../context/ThemeContext';
@@ -22,7 +22,10 @@ export default function ProfilePage() {
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
+  const [avatarError, setAvatarError] = useState(false);
   const fileRef = useRef(null);
+
+  useEffect(() => { setAvatarError(false); }, [profile.avatar]);
 
   async function uploadToCloudinary(file) {
     const cloudName    = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
@@ -120,11 +123,12 @@ export default function ProfilePage() {
             <div className="flex items-center gap-6">
               {/* Avatar preview */}
               <div className="relative flex-shrink-0">
-                {profile.avatar ? (
+                {profile.avatar && !avatarError ? (
                   <img
                     src={profile.avatar}
                     alt="Profile"
                     className="w-20 h-20 rounded-2xl object-cover shadow-md ring-4 ring-indigo-500/20"
+                    onError={() => setAvatarError(true)}
                   />
                 ) : (
                   <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-md ring-4 ring-indigo-500/20">

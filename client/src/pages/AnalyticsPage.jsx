@@ -76,6 +76,70 @@ function getColor(idx) {
 }
 
 // ---------------------------------------------------------------------------
+// Motivation banner — a rotating quote + a dynamic message based on today's
+// progress, so the page doesn't feel static on repeat visits.
+// ---------------------------------------------------------------------------
+const MOTIVATION_QUOTES = [
+  { text: "Small steps every day add up to big results.", emoji: '🌱' },
+  { text: "You don't have to be perfect, just consistent.", emoji: '🔁' },
+  { text: "Discipline is choosing between what you want now and what you want most.", emoji: '🎯' },
+  { text: "Progress, not perfection.", emoji: '📈' },
+  { text: "The habit you keep today shapes who you become tomorrow.", emoji: '✨' },
+  { text: "Never miss twice — one slip is an accident, two is a pattern.", emoji: '🚫' },
+  { text: "Motivation gets you started. Habit keeps you going.", emoji: '🔥' },
+  { text: "You're not starting over, you're starting from experience.", emoji: '💡' },
+  { text: "One percent better every day is still winning.", emoji: '⚡' },
+  { text: "Show up for yourself today — future you is watching.", emoji: '👀' },
+  { text: "The best time to build a habit was yesterday. The next best time is now.", emoji: '⏳' },
+  { text: "Consistency turns effort into identity.", emoji: '🧩' },
+];
+
+function getDailyQuote() {
+  const start = new Date(new Date().getFullYear(), 0, 0);
+  const dayOfYear = Math.floor((Date.now() - start) / 86400000);
+  return MOTIVATION_QUOTES[dayOfYear % MOTIVATION_QUOTES.length];
+}
+
+function getTodayMessage(habits) {
+  if (!habits.length) return "Add a habit to start your streak today!";
+  const today = new Date().getDate();
+  const data = habits.map((h) => {
+    const v = getDataValue ? getDataValue(h.data, today) : (h.data || {})[String(today)];
+    return v;
+  });
+  const done = data.filter((v) => v !== null && v !== undefined && v !== false && v !== '').length;
+  const total = habits.length;
+  if (done === total) return `All ${total} habits done for today. Incredible! 🎉`;
+  if (done === 0) return `Nothing logged yet today — ${total} habit${total !== 1 ? 's' : ''} waiting for you.`;
+  return `${done}/${total} habits done today — keep the momentum going!`;
+}
+
+function getDataValue(data, day) {
+  if (!data) return undefined;
+  const key = String(day);
+  return typeof data.get === 'function' ? data.get(key) : data[key];
+}
+
+function MotivationBanner({ habitsToday }) {
+  const quote = getDailyQuote();
+  const message = getTodayMessage(habitsToday);
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500 text-white shadow-lg animate-fade-in-up">
+      <div className="absolute -top-6 -right-6 w-28 h-28 bg-white/10 rounded-full" />
+      <div className="absolute -bottom-8 -left-4 w-20 h-20 bg-white/10 rounded-full" />
+      <div className="relative flex items-center gap-3">
+        <span className="text-2xl sm:text-3xl flex-shrink-0">{quote.emoji}</span>
+        <div className="min-w-0">
+          <p className="text-sm sm:text-base font-semibold leading-snug">{quote.text}</p>
+          <p className="text-xs sm:text-sm text-white/80 mt-1">{message}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Achievement badge helper
 // ---------------------------------------------------------------------------
 function getAchievement(rate) {
@@ -144,19 +208,19 @@ function DonutCard({ habit, idx, month }) {
 
   return (
     <div
-      className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-5 flex flex-col items-center hover:shadow-md transition-shadow duration-300 animate-scale-in"
+      className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 p-3 flex flex-col items-center hover:shadow-md transition-shadow duration-300 animate-scale-in w-[130px] sm:w-[140px]"
       style={{ animationDelay: `${idx * 80}ms`, animationFillMode: 'both' }}
     >
       {/* Donut */}
       <div className="relative">
-        <ResponsiveContainer width={110} height={110}>
+        <ResponsiveContainer width={76} height={76}>
           <PieChart>
             <Pie
               data={data}
               cx="50%"
               cy="50%"
-              innerRadius={32}
-              outerRadius={50}
+              innerRadius={22}
+              outerRadius={34}
               dataKey="value"
               startAngle={90}
               endAngle={-270}
@@ -169,7 +233,7 @@ function DonutCard({ habit, idx, month }) {
         </ResponsiveContainer>
         {/* Center % */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-lg font-bold text-gray-800 dark:text-gray-200">{rate.toFixed(0)}%</span>
+          <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{rate.toFixed(0)}%</span>
         </div>
       </div>
 
@@ -470,12 +534,12 @@ function GoalOverview({ habits, month }) {
           </div>
         </div>
         <div className="relative">
-          <ResponsiveContainer width={100} height={100}>
+          <ResponsiveContainer width={72} height={72}>
             <RadialBarChart
               cx="50%"
               cy="50%"
-              innerRadius={28}
-              outerRadius={46}
+              innerRadius={20}
+              outerRadius={33}
               data={radialData}
               startAngle={90}
               endAngle={-270}
@@ -484,7 +548,7 @@ function GoalOverview({ habits, month }) {
             </RadialBarChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-2xl">🎯</span>
+            <span className="text-lg">🎯</span>
           </div>
         </div>
       </div>
@@ -550,6 +614,9 @@ export default function AnalyticsPage() {
   const displayName  = profile?.displayName || user?.email?.split('@')[0] || 'User';
   const avatarLetter = displayName[0].toUpperCase();
 
+  const [avatarError, setAvatarError] = useState(false);
+  useEffect(() => { setAvatarError(false); }, [profile?.avatar]);
+
   // Year options: current year and 2 years back
   const yearOptions = [currentYear, currentYear - 1, currentYear - 2];
 
@@ -574,11 +641,12 @@ export default function AnalyticsPage() {
               className="flex flex-col items-center gap-1 group cursor-pointer hover:opacity-80 transition-opacity"
               title="Go to Profile"
             >
-              {profile?.avatar ? (
+              {profile?.avatar && !avatarError ? (
                 <img
                   src={profile.avatar}
                   alt={displayName}
                   className="w-10 h-10 rounded-lg object-cover ring-2 ring-gray-200 dark:ring-gray-700 group-hover:ring-indigo-500 transition-all"
+                  onError={() => setAvatarError(true)}
                 />
               ) : (
                 <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center ring-2 ring-gray-200 dark:ring-gray-700 group-hover:ring-indigo-500 transition-all">
@@ -611,6 +679,9 @@ export default function AnalyticsPage() {
 
           {!loading && !error && (
             <>
+              {/* ── Motivation banner ── */}
+              <MotivationBanner habitsToday={habitsByMonth[currentMonth] || []} />
+
               {/* ── Stat cards ── */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 <StatCard value={totalEntries}            label="Total Entries"   icon="📝" gradient="linear-gradient(135deg, #6366F1, #8B5CF6)" delay={0} />

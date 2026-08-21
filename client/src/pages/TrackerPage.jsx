@@ -73,6 +73,9 @@ export default function TrackerPage() {
   const displayName = profile?.displayName || user?.email?.split('@')[0] || 'User';
   const avatarLetter = displayName[0].toUpperCase();
 
+  const [avatarError, setAvatarError] = useState(false);
+  useEffect(() => { setAvatarError(false); }, [profile?.avatar]);
+
   // Streak celebration hook
   const { celebration, closeCelebration } = useStreakCelebration(habits);
 
@@ -100,11 +103,12 @@ export default function TrackerPage() {
               className="flex flex-col items-center gap-1 group cursor-pointer hover:opacity-80 transition-opacity"
               title="Go to Profile"
             >
-              {profile?.avatar ? (
+              {profile?.avatar && !avatarError ? (
                 <img
                   src={profile.avatar}
                   alt={displayName}
                   className="w-10 h-10 rounded-lg object-cover ring-2 ring-gray-200 dark:ring-gray-700 group-hover:ring-indigo-500 transition-all"
+                  onError={() => setAvatarError(true)}
                 />
               ) : (
                 <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center ring-2 ring-gray-200 dark:ring-gray-700 group-hover:ring-indigo-500 transition-all">

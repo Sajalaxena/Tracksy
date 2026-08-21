@@ -21,6 +21,27 @@ function getDaysInMonth(month) {
   return new Date(year, monthIndex, 0).getDate();
 }
 
+// Completed-vs-elapsed stats for a habit in the given month, used by the
+// "Goal" column. Elapsed days = whole month if it's in the past, days-so-far
+// if it's the current month, 0 if it's a future month.
+function getCompletionStats(habit, month, daysInMonth) {
+  const now = new Date();
+  const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const daysElapsed =
+    month === currentYearMonth
+      ? Math.min(now.getDate(), daysInMonth)
+      : month < currentYearMonth
+      ? daysInMonth
+      : 0;
+
+  let completed = 0;
+  for (let day = 1; day <= daysElapsed; day++) {
+    const v = getDataValue(habit.data, day);
+    if (v !== null && v !== undefined && v !== false && v !== '') completed++;
+  }
+  return { completed, total: daysElapsed };
+}
+
 // ── Inline rename input ────────────────────────────────────────────────────
 
 function RenameInput({ initialName, onSave, onCancel }) {
@@ -85,12 +106,10 @@ function CategoryCell({ habit, index, onRename, onDelete }) {
       style={{
         position: 'sticky',
         left: 0,
-        minWidth: '180px',
-        maxWidth: '220px',
         height: '48px',
         zIndex: 1,
       }}
-      className="border-b border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900"
+      className="w-[130px] min-w-[130px] max-w-[170px] sm:w-[180px] sm:min-w-[180px] sm:max-w-[220px] border-b border-r border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -149,6 +168,35 @@ function CategoryCell({ habit, index, onRename, onDelete }) {
   );
 }
 
+// ── Goal / completion cell ──────────────────────────────────────────────────
+
+function GoalCell({ habit, month, daysInMonth }) {
+  const { completed, total } = getCompletionStats(habit, month, daysInMonth);
+  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+  let tone = 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400';
+  if (total > 0) {
+    if (pct >= 80) tone = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
+    else if (pct >= 50) tone = 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+    else tone = 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
+  }
+
+  return (
+    <td
+      style={{ position: 'sticky', right: 0 }}
+      className="w-[64px] sm:w-[80px] h-full border-b border-l border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 text-center align-middle p-0"
+    >
+      <div
+        className={`inline-flex flex-col items-center justify-center rounded-lg px-1.5 py-1 leading-none font-semibold ${tone}`}
+        title={`${completed} of ${total} days completed (${pct}%)`}
+      >
+        <span className="text-[11px] sm:text-xs">{completed}/{total}</span>
+        <span className="text-[9px] sm:text-[10px] font-medium opacity-80">{pct}%</span>
+      </div>
+    </td>
+  );
+}
+
 // ── Delete confirm dialog ──────────────────────────────────────────────────
 
 function DeleteConfirm({ habitName, onConfirm, onCancel }) {
@@ -193,7 +241,7 @@ function AddHabitRow({ daysInMonth, onAddHabit }) {
   return (
     <tr>
       <td
-        colSpan={daysInMonth + 1}
+        colSpan={daysInMonth + 2}
         className="border-t border-gray-100"
         style={{ height: '48px' }}
       >
@@ -234,10 +282,12 @@ export default function HabitGrid({ month, habits = [], onCellChange, onAddHabit
 
     const todayDay = now.getDate();
 
-    // Each day column is 44px wide. The sticky name column is 180px.
+    // Each day column is 44px wide on desktop, 34px on mobile (< 640px).
+    // The sticky name column is 180px / 130px respectively.
     // Column index is 0-based: day 1 is at index 0.
-    const CELL_WIDTH = 44;
-    const NAME_COL_WIDTH = 180;
+    const isMobile = window.innerWidth < 640;
+    const CELL_WIDTH = isMobile ? 34 : 44;
+    const NAME_COL_WIDTH = isMobile ? 130 : 180;
 
     // Position of today's column left edge
     const todayLeft = NAME_COL_WIDTH + (todayDay - 1) * CELL_WIDTH;
@@ -342,6 +392,7 @@ export default function HabitGrid({ month, habits = [], onCellChange, onAddHabit
                     />
                   );
                 })}
+                <GoalCell habit={habit} month={month} daysInMonth={daysInMonth} />
               </tr>
             ))}            <AddHabitRow daysInMonth={daysInMonth} onAddHabit={onAddHabit} />
           </tbody>

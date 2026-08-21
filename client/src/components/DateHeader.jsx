@@ -34,8 +34,8 @@ export default function DateHeader({ month, today: todayProp }) {
       <tr style={{ position: 'sticky', top: 0, zIndex: 2 }}>
         {/* Corner cell */}
         <th
-          style={{ minWidth: '180px', position: 'sticky', left: 0, zIndex: 3 }}
-          className="bg-white dark:bg-gray-900 border-b-2 border-gray-100 dark:border-gray-800"
+          style={{ position: 'sticky', left: 0, zIndex: 3 }}
+          className="w-[130px] min-w-[130px] sm:w-[180px] sm:min-w-[180px] bg-white dark:bg-gray-900 border-b-2 border-gray-100 dark:border-gray-800"
           aria-hidden="true"
         />
 
@@ -62,21 +62,31 @@ export default function DateHeader({ month, today: todayProp }) {
             <th
               key={dayNum}
               scope="col"
-              style={{ width: '44px', minWidth: '44px' }}
-              className={[bg, border, ring, 'text-center select-none px-0'].join(' ')}
+              className={[bg, border, ring, 'w-[34px] min-w-[34px] sm:w-[44px] sm:min-w-[44px] text-center select-none px-0'].join(' ')}
               aria-label={`${weekday} ${dayNum}${isToday ? ' (today)' : ''}`}
             >
               <div className="flex flex-col items-center justify-center py-1.5 gap-0.5">
-                <span className={`text-[9px] font-semibold uppercase tracking-wide ${textColor}`}>
+                <span className={`text-[8px] sm:text-[9px] font-semibold uppercase tracking-wide ${textColor}`}>
                   {weekday}
                 </span>
-                <span className={`text-xs leading-none ${numColor}`}>
+                <span className={`text-[11px] sm:text-xs leading-none ${numColor}`}>
                   {dayNum}
                 </span>
               </div>
             </th>
           );
         })}
+
+        {/* Goal / completion column */}
+        <th
+          scope="col"
+          style={{ position: 'sticky', right: 0, zIndex: 3 }}
+          className="w-[64px] min-w-[64px] sm:w-[80px] sm:min-w-[80px] bg-white dark:bg-gray-900 border-b-2 border-l border-gray-100 dark:border-gray-800 text-center select-none px-1"
+        >
+          <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+            Goal
+          </span>
+        </th>
       </tr>
     </thead>
   );
