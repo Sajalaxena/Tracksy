@@ -18,6 +18,23 @@ function MissedIcon() {
   );
 }
 
+// ── Skip cell — shown for days not in the habit's active schedule ──────────
+
+function SkipCell() {
+  return (
+    <td className="w-[44px] h-[44px] text-center align-middle p-0">
+      <div className="flex items-center justify-center w-full h-full">
+        {/* Soft dash/dot — clearly "not applicable", not a failure */}
+        <span
+          className="w-4 h-[3px] rounded-full bg-gray-200 dark:bg-gray-700 opacity-60"
+          aria-label="Skipped day"
+          title="Not scheduled for this day"
+        />
+      </div>
+    </td>
+  );
+}
+
 // ── Boolean cell ───────────────────────────────────────────────────────────
 
 function BooleanCell({ value, onChange, isPast, isToday }) {
@@ -126,23 +143,58 @@ function NumericCell({ value, onChange, isPast }) {
 
 // ── Public component ───────────────────────────────────────────────────────
 
+const DAY_ABBR = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/**
+ * Returns true if this particular calendar day is an "active" day for the habit.
+ * - daily:  always active
+ * - weekly: active on Sunday (first day of each week)
+ * - custom: active only on the weekdays listed in activeDays
+ */
+function isDayActive({ frequency, activeDays, year, monthIndex, day }) {
+  if (!frequency || frequency === 'daily') return true;
+  const date = new Date(year, monthIndex - 1, day);
+  if (frequency === 'weekly') {
+    // Active once per week — Sunday column acts as the weekly marker
+    return date.getDay() === 0;
+  }
+  if (frequency === 'custom') {
+    if (!activeDays || activeDays.length === 0) return true; // fallback
+    const weekdayName = DAY_ABBR[date.getDay()];
+    return activeDays.includes(weekdayName);
+  }
+  return true;
+}
+
 /**
  * CellInput
  * Props:
- *   type      — "boolean" | "numeric"
- *   value     — current value
- *   day       — day number 1–31
- *   month     — "YYYY-MM" of the grid
- *   onChange  — callback(newValue)
+ *   type       — "boolean" | "numeric"
+ *   value      — current value
+ *   day        — day number 1–31
+ *   month      — "YYYY-MM" of the grid
+ *   frequency  — "daily" | "weekly" | "custom"
+ *   activeDays — array of weekday strings e.g. ['Mon','Wed'] (for custom)
+ *   onChange   — callback(newValue)
  */
-export default function CellInput({ type, value, day, month, onChange }) {
-  // Determine if this day is in the past
+export default function CellInput({ type, value, day, month, frequency, activeDays, onChange }) {
   const now = new Date();
   const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const todayDay = now.getDate();
 
   const isPast = month < currentYearMonth || (month === currentYearMonth && day < todayDay);
   const isToday = month === currentYearMonth && day === todayDay;
+
+  const [yearStr, monthStr] = (month || '').split('-');
+  const year = parseInt(yearStr, 10);
+  const monthIndex = parseInt(monthStr, 10);
+
+  const active = isDayActive({ frequency, activeDays, year, monthIndex, day });
+
+  // Inactive days: show a skip indicator, not counted in goals
+  if (!active) {
+    return <SkipCell />;
+  }
 
   if (type === 'boolean') {
     return <BooleanCell value={value} onChange={onChange} isPast={isPast} isToday={isToday} />;

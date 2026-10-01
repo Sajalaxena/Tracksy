@@ -58,6 +58,8 @@ router.post('/carry-over', async (req, res, next) => {
         name: h.name,
         type: h.type,
         month: toMonth,
+        frequency: h.frequency || 'daily',
+        activeDays: h.activeDays || [],
         data: {},
       }))
     );
@@ -71,7 +73,7 @@ router.post('/carry-over', async (req, res, next) => {
 // Creates a new HabitRecord for the authenticated user.
 router.post('/', async (req, res, next) => {
   try {
-    const { name, type, month } = req.body;
+    const { name, type, month, frequency, activeDays } = req.body;
 
     // Validate name
     if (!name || name.trim().length === 0) {
@@ -88,11 +90,17 @@ router.post('/', async (req, res, next) => {
       return res.status(400).json({ error: 'month must be in YYYY-MM format' });
     }
 
+    // Validate frequency
+    const validFrequencies = ['daily', 'weekly', 'custom'];
+    const resolvedFrequency = validFrequencies.includes(frequency) ? frequency : 'daily';
+
     const record = new HabitRecord({
       userId: req.userId,
       name: name.trim(),
       type,
       month,
+      frequency: resolvedFrequency,
+      activeDays: resolvedFrequency === 'custom' && Array.isArray(activeDays) ? activeDays : [],
     });
 
     await record.save();

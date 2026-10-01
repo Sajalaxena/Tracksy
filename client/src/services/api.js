@@ -47,8 +47,8 @@ export const getHabits = (month) =>
 export const carryOverHabits = (fromMonth, toMonth) =>
   api.post('/habits/carry-over', { fromMonth, toMonth });
 
-export const createHabit = (name, type, month) =>
-  api.post('/habits', { name, type, month });
+export const createHabit = (name, type, month, frequency, activeDays) =>
+  api.post('/habits', { name, type, month, frequency, activeDays });
 
 export const updateCell = (id, day, value) =>
   api.patch(`/habits/${id}`, { day, value });

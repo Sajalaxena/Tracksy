@@ -28,6 +28,16 @@ const HabitRecordSchema = new Schema(
       of: Schema.Types.Mixed,
       default: {},
     },
+    frequency: {
+      type: String,
+      enum: ['daily', 'weekly', 'custom'],
+      default: 'daily',
+    },
+    activeDays: {
+      // Array of weekday abbreviations e.g. ['Mon','Wed','Fri']
+      type: [String],
+      default: [],
+    },
   },
   { timestamps: true }
 );

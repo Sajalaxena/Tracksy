@@ -61,14 +61,17 @@ export default function AddHabitModal({ month, onCreated, onClose }) {
 
     setSubmitting(true);
     try {
-      // Store frequency metadata in the name as a suffix for now
-      // (the backend stores it as-is; a future migration can add a field)
-      const response = await createHabit(name.trim(), type, month);
-      // Attach frequency info to the returned habit object client-side
+      const response = await createHabit(
+        name.trim(),
+        type,
+        month,
+        frequency,
+        frequency === 'custom' ? selectedDays : []
+      );
       const newHabit = {
         ...response.data,
-        frequency,
-        activeDays: frequency === 'custom' ? selectedDays : undefined,
+        frequency: response.data.frequency || frequency,
+        activeDays: response.data.activeDays || (frequency === 'custom' ? selectedDays : []),
       };
       onCreated(newHabit);
       onClose();

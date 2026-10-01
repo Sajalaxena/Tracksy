@@ -21,6 +21,36 @@ function getDaysInMonth(month) {
   return new Date(year, monthIndex, 0).getDate();
 }
 
+const DAY_ABBR_GRID = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/** True if this habit is scheduled for this calendar day */
+function isHabitActiveOnDay(habit, year, monthIndex, dayNum) {
+  const freq = habit.frequency || 'daily';
+  if (freq === 'daily') return true;
+  const date = new Date(year, monthIndex - 1, dayNum);
+  if (freq === 'weekly') return date.getDay() === 0; // Sunday = weekly marker
+  if (freq === 'custom') {
+    const days = habit.activeDays || [];
+    if (days.length === 0) return true;
+    return days.includes(DAY_ABBR_GRID[date.getDay()]);
+  }
+  return true;
+}
+
+/** Returns { achieved, total } for a specific day across all habits */
+function getDayGoalCount(habits, year, monthIndex, dayNum) {
+  let total = 0;
+  let achieved = 0;
+  for (const habit of habits) {
+    if (!isHabitActiveOnDay(habit, year, monthIndex, dayNum)) continue;
+    total++;
+    const val = getDataValue(habit.data, dayNum);
+    if (habit.type === 'boolean' && val) achieved++;
+    if (habit.type === 'numeric' && val != null && val !== '' && parseFloat(val) > 0) achieved++;
+  }
+  return { achieved, total };
+}
+
 // ── Inline rename input ────────────────────────────────────────────────────
 
 function RenameInput({ initialName, onSave, onCancel }) {
@@ -211,6 +241,102 @@ function AddHabitRow({ daysInMonth, onAddHabit }) {
   );
 }
 
+// ── Goal progress row ──────────────────────────────────────────────────────
+
+function GoalRow({ habits, month, days }) {
+  const [yearStr, monthStr] = (month || '').split('-');
+  const year = parseInt(yearStr, 10);
+  const monthIndex = parseInt(monthStr, 10);
+
+  const now = new Date();
+  const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const todayDay = now.getDate();
+
+  return (
+    <tr style={{ height: '36px' }} className="border-t-2 border-gray-100 dark:border-gray-800 bg-gray-50/60 dark:bg-gray-800/40">
+      {/* Label */}
+      <td
+        style={{
+          position: 'sticky',
+          left: 0,
+          minWidth: '180px',
+          zIndex: 1,
+        }}
+        className="bg-gray-50/90 dark:bg-gray-800/90 border-r border-gray-100 dark:border-gray-800 px-3"
+      >
+        <span className="text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">
+          Goals
+        </span>
+      </td>
+
+      {days.map((day) => {
+        const { achieved, total } = getDayGoalCount(habits, year, monthIndex, day);
+        const isPast = month < currentYearMonth || (month === currentYearMonth && day < todayDay);
+        const isToday = month === currentYearMonth && day === todayDay;
+
+        // No habits scheduled this day
+        if (total === 0) {
+          return (
+            <td key={day} className="w-[44px] text-center p-0">
+              <span className="block w-3 h-[3px] rounded-full bg-gray-200 dark:bg-gray-700 mx-auto opacity-40" />
+            </td>
+          );
+        }
+
+        const allDone = achieved === total;
+        const none = achieved === 0;
+        const fraction = `${achieved}/${total}`;
+
+        // Color logic
+        let bgClass = '';
+        let textClass = '';
+        let dotClass = '';
+
+        if (isToday) {
+          bgClass = allDone
+            ? 'bg-emerald-100 dark:bg-emerald-900/30'
+            : 'bg-indigo-50 dark:bg-indigo-900/20';
+          textClass = allDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-indigo-600 dark:text-indigo-400';
+          dotClass = allDone ? 'bg-emerald-500' : 'bg-indigo-400';
+        } else if (isPast) {
+          bgClass = allDone
+            ? 'bg-emerald-50 dark:bg-emerald-900/20'
+            : none
+            ? 'bg-red-50/60 dark:bg-red-900/10'
+            : 'bg-amber-50 dark:bg-amber-900/10';
+          textClass = allDone
+            ? 'text-emerald-500 dark:text-emerald-400'
+            : none
+            ? 'text-red-400 dark:text-red-500'
+            : 'text-amber-500 dark:text-amber-400';
+          dotClass = allDone ? 'bg-emerald-400' : none ? 'bg-red-300' : 'bg-amber-400';
+        } else {
+          // Future day
+          bgClass = '';
+          textClass = 'text-gray-300 dark:text-gray-600';
+          dotClass = 'bg-gray-200 dark:bg-gray-700';
+        }
+
+        return (
+          <td key={day} className={`w-[44px] h-[36px] text-center align-middle p-0 ${bgClass}`}>
+            <div className="flex flex-col items-center justify-center gap-0.5">
+              {/* Mini progress dot */}
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${dotClass}`}
+                aria-hidden="true"
+              />
+              {/* Fraction label */}
+              <span className={`text-[9px] font-bold leading-none ${textClass}`}>
+                {fraction}
+              </span>
+            </div>
+          </td>
+        );
+      })}
+    </tr>
+  );
+}
+
 // ── HabitGrid ──────────────────────────────────────────────────────────────
 
 export default function HabitGrid({ month, habits = [], onCellChange, onAddHabit, onHabitsChange }) {
@@ -338,12 +464,21 @@ export default function HabitGrid({ month, habits = [], onCellChange, onAddHabit
                       value={value}
                       day={day}
                       month={month}
+                      frequency={habit.frequency}
+                      activeDays={habit.activeDays}
                       onChange={(newValue) => handleCellChange(habit._id, day, newValue)}
                     />
                   );
                 })}
               </tr>
-            ))}            <AddHabitRow daysInMonth={daysInMonth} onAddHabit={onAddHabit} />
+            ))}
+
+            {/* ── Goal progress row ──────────────────────────────────────── */}
+            {localHabits.length > 0 && (
+              <GoalRow habits={localHabits} month={month} days={days} />
+            )}
+
+            <AddHabitRow daysInMonth={daysInMonth} onAddHabit={onAddHabit} />
           </tbody>
         </table>
       </div>
