@@ -42,7 +42,7 @@ function BooleanCell({ value, onChange, isPast, isToday }) {
   const missed = isPast && !checked; // past day, not ticked
 
   return (
-    <td className="w-[44px] h-[44px] text-center align-middle p-0">
+    <td className="w-[34px] h-[34px] sm:w-[44px] sm:h-[44px] text-center align-middle p-0">
       <div className="flex items-center justify-center w-full h-full">
         <button
           role="checkbox"
@@ -50,7 +50,7 @@ function BooleanCell({ value, onChange, isPast, isToday }) {
           onClick={() => onChange(!value)}
           title={missed ? 'Missed — click to mark done' : checked ? 'Done' : 'Mark done'}
           className={[
-            'w-[26px] h-[26px] rounded-full flex items-center justify-center',
+            'w-[20px] h-[20px] sm:w-[26px] sm:h-[26px] rounded-full flex items-center justify-center',
             'focus:outline-none focus:ring-2 focus:ring-offset-1 transition-all duration-200',
             checked
               ? 'bg-emerald-500 border-0 shadow-sm focus:ring-emerald-400 hover:bg-emerald-600'
@@ -94,7 +94,7 @@ function NumericCell({ value, onChange, isPast }) {
   const showMissed = isPast && isEmpty && !focused;
 
   return (
-    <td className="w-[44px] h-[44px] text-center align-middle p-0">
+    <td className="w-[34px] h-[34px] sm:w-[44px] sm:h-[44px] text-center align-middle p-0">
       <div
         className={[
           'flex items-center justify-center w-full h-full',
@@ -103,7 +103,7 @@ function NumericCell({ value, onChange, isPast }) {
       >
         {showAbbreviated ? (
           <div
-            className="w-10 text-center text-xs font-semibold text-gray-600 cursor-pointer select-none"
+            className="w-8 sm:w-10 text-center text-[11px] sm:text-xs font-semibold text-gray-600 cursor-pointer select-none"
             onClick={() => setFocused(true)}
           >
             {`${Math.round(numericValue / 1000)}k`}
@@ -127,7 +127,7 @@ function NumericCell({ value, onChange, isPast }) {
             onBlur={() => { setFocused(false); commitValue(inputValue); }}
             onKeyDown={(e) => { if (e.key === 'Enter') { commitValue(inputValue); e.target.blur(); } }}
             className={[
-              'w-10 text-center text-xs bg-transparent border-0 outline-none font-medium',
+              'w-8 sm:w-10 text-center text-[11px] sm:text-xs bg-transparent border-0 outline-none font-medium',
               'focus:ring-2 focus:ring-indigo-400 rounded',
               '[appearance:textfield]',
               '[&::-webkit-outer-spin-button]:appearance-none',
@@ -202,5 +202,5 @@ export default function CellInput({ type, value, day, month, frequency, activeDa
   if (type === 'numeric') {
     return <NumericCell value={value} onChange={onChange} isPast={isPast} />;
   }
-  return <td className="w-[44px] h-[44px]" />;
+  return <td className="w-[34px] h-[34px] sm:w-[44px] sm:h-[44px]" />;
 }

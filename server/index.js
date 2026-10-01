@@ -44,6 +44,13 @@ app.use(mongoSanitize());
 app.use(cors());
 app.use(express.json({ limit: '10kb' })); // limit body size
 
+// Lightweight, unauthenticated health check — safe target for an external
+// keep-alive/cron ping on free hosting tiers that spin the server down
+// after a period of inactivity.
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', dbState: mongoose.connection.readyState });
+});
+
 // Routes with rate limiting
 app.use('/api/auth', authLimiter, authRouter);
 app.use('/api/habits', authMiddleware, habitsRouter);
@@ -57,6 +64,30 @@ app.use((err, req, res, next) => {
 
 // Connect to MongoDB and start server
 const PORT = process.env.PORT || 5000;
+
+// Log connection issues instead of letting them surface as unhandled
+// errors — mongoose retries/reconnects on its own, so a transient drop
+// (idle timeout, network blip) shouldn't take the whole process down.
+mongoose.connection.on('error', (err) => {
+  console.error('MongoDB connection error:', err.message);
+});
+mongoose.connection.on('disconnected', () => {
+  console.warn('MongoDB disconnected — mongoose will attempt to reconnect');
+});
+mongoose.connection.on('reconnected', () => {
+  console.log('MongoDB reconnected');
+});
+
+// A promise rejection or thrown error that escapes every try/catch should
+// not silently crash the process without a trace — log it so the cause is
+// visible in the host's logs, then exit so the platform can restart clean.
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled promise rejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
+  process.exit(1);
+});
 
 mongoose
   .connect(process.env.MONGO_URI)

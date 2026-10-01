@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -47,6 +48,9 @@ export default function BottomNav({ onNewHabit }) {
 
   const displayName  = profile?.displayName || user?.email?.split('@')[0] || 'User';
   const avatarLetter = displayName[0]?.toUpperCase() || 'U';
+
+  const [avatarError, setAvatarError] = useState(false);
+  useEffect(() => { setAvatarError(false); }, [profile?.avatar]);
 
   function handleLogout() {
     logout();
@@ -124,11 +128,12 @@ export default function BottomNav({ onNewHabit }) {
           title={`Sign out (${displayName})`}
         >
           {/* Show avatar if available, else logout icon */}
-          {profile?.avatar ? (
+          {profile?.avatar && !avatarError ? (
             <img
               src={profile.avatar}
               alt={displayName}
               className="w-5 h-5 rounded-full object-cover ring-1 ring-rose-400"
+              onError={() => setAvatarError(true)}
             />
           ) : (
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">

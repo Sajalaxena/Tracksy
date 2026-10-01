@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -41,6 +42,9 @@ export default function Sidebar({ onNewHabit }) {
   const { dark, toggle } = useTheme();
   const { profile } = useProfile();
   const navigate = useNavigate();
+
+  const [avatarError, setAvatarError] = useState(false);
+  useEffect(() => { setAvatarError(false); }, [profile.avatar]);
 
   function handleLogout() {
     logout();
@@ -141,8 +145,13 @@ export default function Sidebar({ onNewHabit }) {
           title={displayName}
           className="flex items-center gap-2 px-2 lg:px-3 py-2 rounded-lg hover:bg-white/5 transition-colors"
         >
-          {profile.avatar ? (
-            <img src={profile.avatar} alt="avatar" className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+          {profile.avatar && !avatarError ? (
+            <img
+              src={profile.avatar}
+              alt="avatar"
+              className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+              onError={() => setAvatarError(true)}
+            />
           ) : (
             <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-green-700 flex items-center justify-center flex-shrink-0">
               <span className="text-white text-xs font-bold">{avatarLetter}</span>
