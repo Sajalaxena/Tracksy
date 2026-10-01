@@ -51,32 +51,6 @@ function getDayGoalCount(habits, year, monthIndex, dayNum) {
   return { achieved, total };
 }
 
-// Completed-vs-elapsed stats for a single habit (for GoalCell per-habit column).
-// Only counts active/scheduled days. Elapsed = days so far this month, full month if past, 0 if future.
-function getCompletionStats(habit, month, daysInMonth) {
-  const now = new Date();
-  const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const [yearStr, monthStr] = (month || '').split('-');
-  const year = parseInt(yearStr, 10);
-  const monthIndex = parseInt(monthStr, 10);
-  const daysElapsed =
-    month === currentYearMonth
-      ? Math.min(now.getDate(), daysInMonth)
-      : month < currentYearMonth
-      ? daysInMonth
-      : 0;
-
-  let completed = 0;
-  let total = 0;
-  for (let day = 1; day <= daysElapsed; day++) {
-    if (!isHabitActiveOnDay(habit, year, monthIndex, day)) continue;
-    total++;
-    const v = getDataValue(habit.data, day);
-    if (v !== null && v !== undefined && v !== false && v !== '') completed++;
-  }
-  return { completed, total };
-}
-
 // ── Inline rename input ────────────────────────────────────────────────────
 
 function RenameInput({ initialName, onSave, onCancel }) {
@@ -203,35 +177,6 @@ function CategoryCell({ habit, index, onRename, onDelete }) {
   );
 }
 
-// ── Goal / completion cell ──────────────────────────────────────────────────
-
-function GoalCell({ habit, month, daysInMonth }) {
-  const { completed, total } = getCompletionStats(habit, month, daysInMonth);
-  const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-
-  let tone = 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400';
-  if (total > 0) {
-    if (pct >= 80) tone = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
-    else if (pct >= 50) tone = 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
-    else tone = 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400';
-  }
-
-  return (
-    <td
-      style={{ position: 'sticky', right: 0 }}
-      className="w-[64px] sm:w-[80px] h-full border-b border-l border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 text-center align-middle p-0"
-    >
-      <div
-        className={`inline-flex flex-col items-center justify-center rounded-lg px-1.5 py-1 leading-none font-semibold ${tone}`}
-        title={`${completed} of ${total} days completed (${pct}%)`}
-      >
-        <span className="text-[11px] sm:text-xs">{completed}/{total}</span>
-        <span className="text-[9px] sm:text-[10px] font-medium opacity-80">{pct}%</span>
-      </div>
-    </td>
-  );
-}
-
 // ── Delete confirm dialog ──────────────────────────────────────────────────
 
 function DeleteConfirm({ habitName, onConfirm, onCancel }) {
@@ -276,7 +221,7 @@ function AddHabitRow({ daysInMonth, onAddHabit }) {
   return (
     <tr>
       <td
-        colSpan={daysInMonth + 2}
+        colSpan={daysInMonth + 1}
         className="border-t border-gray-100"
         style={{ height: '48px' }}
       >
@@ -336,53 +281,32 @@ function GoalRow({ habits, month, days }) {
           );
         }
 
-        const allDone = achieved === total;
-        const none = achieved === 0;
+        const pct = total > 0 ? (achieved / total) * 100 : 0;
+        const isGreen = pct >= 85;
         const fraction = `${achieved}/${total}`;
 
-        // Color logic
-        let bgClass = '';
-        let textClass = '';
-        let dotClass = '';
-
-        if (isToday) {
-          bgClass = allDone
-            ? 'bg-emerald-100 dark:bg-emerald-900/30'
-            : 'bg-indigo-50 dark:bg-indigo-900/20';
-          textClass = allDone ? 'text-emerald-600 dark:text-emerald-400' : 'text-indigo-600 dark:text-indigo-400';
-          dotClass = allDone ? 'bg-emerald-500' : 'bg-indigo-400';
-        } else if (isPast) {
-          bgClass = allDone
-            ? 'bg-emerald-50 dark:bg-emerald-900/20'
-            : none
-            ? 'bg-red-50/60 dark:bg-red-900/10'
-            : 'bg-amber-50 dark:bg-amber-900/10';
-          textClass = allDone
-            ? 'text-emerald-500 dark:text-emerald-400'
-            : none
-            ? 'text-red-400 dark:text-red-500'
-            : 'text-amber-500 dark:text-amber-400';
-          dotClass = allDone ? 'bg-emerald-400' : none ? 'bg-red-300' : 'bg-amber-400';
-        } else {
-          // Future day
-          bgClass = '';
-          textClass = 'text-gray-300 dark:text-gray-600';
-          dotClass = 'bg-gray-200 dark:bg-gray-700';
+        // Future days — muted, no colour judgement yet
+        if (!isPast && !isToday) {
+          return (
+            <td key={day} className="w-[44px] h-[36px] text-center align-middle p-0">
+              <span className={`text-[9px] font-bold leading-none text-gray-300 dark:text-gray-600`}>
+                {fraction}
+              </span>
+            </td>
+          );
         }
+
+        // Past days and today: green if ≥85%, red otherwise
+        const bgClass = isGreen
+          ? 'bg-emerald-500 dark:bg-emerald-600'
+          : 'bg-red-500 dark:bg-red-600';
+        const textClass = 'text-white';
 
         return (
           <td key={day} className={`w-[44px] h-[36px] text-center align-middle p-0 ${bgClass}`}>
-            <div className="flex flex-col items-center justify-center gap-0.5">
-              {/* Mini progress dot */}
-              <span
-                className={`w-1.5 h-1.5 rounded-full ${dotClass}`}
-                aria-hidden="true"
-              />
-              {/* Fraction label */}
-              <span className={`text-[9px] font-bold leading-none ${textClass}`}>
-                {fraction}
-              </span>
-            </div>
+            <span className={`text-[9px] font-bold leading-none ${textClass}`}>
+              {fraction}
+            </span>
           </td>
         );
       })}
@@ -525,7 +449,6 @@ export default function HabitGrid({ month, habits = [], onCellChange, onAddHabit
                     />
                   );
                 })}
-                <GoalCell habit={habit} month={month} daysInMonth={daysInMonth} />
               </tr>
             ))}
 
